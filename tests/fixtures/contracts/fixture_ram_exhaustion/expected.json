@@ -1,0 +1,5 @@
+{
+  "fixture": "fixture_ram_exhaustion",
+  "final_verdict": "BUDGET_RAM_EXCEEDED",
+  "cleanup_status": "CLEAN"
+}

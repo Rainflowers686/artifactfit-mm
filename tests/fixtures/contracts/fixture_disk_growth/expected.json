@@ -1,0 +1,5 @@
+{
+  "fixture": "fixture_disk_growth",
+  "final_verdict": "BUDGET_STORAGE_EXCEEDED",
+  "cleanup_status": "CLEAN"
+}

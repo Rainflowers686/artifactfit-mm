@@ -4,20 +4,15 @@ import os
 import subprocess
 import threading
 import time
-from collections.abc import BinaryIO
+from contextlib import suppress
 from dataclasses import asdict, dataclass
 from pathlib import Path
-from typing import Any
+from typing import Any, BinaryIO
 
 import psutil
-
-try:
-    import pynvml
-except ImportError:  # pragma: no cover - dependency is required in packaged installs
-    pynvml = None  # type: ignore[assignment]
+import pynvml  # type: ignore[import-untyped]
 
 from artifactfit_mm.stages.machine import BlockingState
-
 
 GIB = 1024**3
 
@@ -78,9 +73,6 @@ class _NvmlSampler:
         self.available = False
         self.reason = "NVML_UNAVAILABLE"
         self._handles: list[Any] = []
-        if pynvml is None:
-            self.reason = "PYNVML_NOT_INSTALLED"
-            return
         try:
             pynvml.nvmlInit()
             self._handles = [
@@ -89,7 +81,7 @@ class _NvmlSampler:
             ]
             self.available = True
             self.reason = "NVML_PROCESS_ACCOUNTING"
-        except Exception as exc:  # noqa: BLE001 - driver errors are recorded, not hidden
+        except Exception as exc:
             self.reason = f"NVML_INIT_FAILED:{type(exc).__name__}"
 
     def sample(self, pids: set[int]) -> int | None:
@@ -127,17 +119,15 @@ class _NvmlSampler:
                     total += int(used)
                     seen.add(key)
             return total
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             self.available = False
             self.reason = f"NVML_SAMPLE_FAILED:{type(exc).__name__}"
             return None
 
     def close(self) -> None:
-        if pynvml is not None and self._handles:
-            try:
+        if self._handles:
+            with suppress(Exception):
                 pynvml.nvmlShutdown()
-            except Exception:
-                pass
 
 
 @dataclass(slots=True)
@@ -250,7 +240,7 @@ def run_bounded_process(
         popen_options["creationflags"] = subprocess.CREATE_NEW_PROCESS_GROUP
     else:
         popen_options["start_new_session"] = True
-    process = subprocess.Popen(command, **popen_options)  # noqa: S603 - argv is contract-pinned
+    process = subprocess.Popen(command, **popen_options)
     assert process.stdout is not None
     assert process.stderr is not None
     stdout_counter = _StreamCounter()

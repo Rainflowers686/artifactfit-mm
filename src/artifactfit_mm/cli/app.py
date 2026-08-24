@@ -21,7 +21,6 @@ from artifactfit_mm.receipts.writer import read_json
 from artifactfit_mm.runners.executor import run_contract
 from artifactfit_mm.runners.replay import replay_run
 
-
 app = typer.Typer(
     name="artifactfit",
     help="Contract-guided, resource-bounded engineering preflight for research artifacts.",
@@ -38,7 +37,9 @@ def _emit(value: dict[str, Any], json_output: bool) -> None:
     table.add_column("Field", style="bold")
     table.add_column("Value")
     for key, item in value.items():
-        rendered = json.dumps(item, ensure_ascii=False) if isinstance(item, (dict, list)) else str(item)
+        rendered = (
+            json.dumps(item, ensure_ascii=False) if isinstance(item, (dict, list)) else str(item)
+        )
         table.add_row(key, rendered)
     console.print(table)
 
@@ -205,7 +206,9 @@ def plan(
             "contract_hash": loaded.contract_hash,
             "policy": policy.as_dict(),
             "stages": stages,
-            "network": "EXPLICIT_ALLOW" if loaded.contract.runtime.network_allowed else "DEFAULT_DENY",
+            "network": "EXPLICIT_ALLOW"
+            if loaded.contract.runtime.network_allowed
+            else "DEFAULT_DENY",
         },
         json_output,
     )
@@ -260,12 +263,12 @@ def doctor(
     """Report host capabilities and enforcement limitations."""
     nvml_status = "UNVERIFIED"
     try:
-        import pynvml
+        import pynvml  # type: ignore[import-untyped]
 
         pynvml.nvmlInit()
         nvml_status = f"AVAILABLE:{pynvml.nvmlDeviceGetCount()}_DEVICE(S)"
         pynvml.nvmlShutdown()
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         nvml_status = f"UNAVAILABLE:{type(exc).__name__}"
     _emit(
         {

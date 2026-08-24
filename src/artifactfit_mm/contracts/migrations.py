@@ -3,7 +3,6 @@ from __future__ import annotations
 from copy import deepcopy
 from typing import Any
 
-
 CURRENT_SCHEMA_VERSION = "1.0.0"
 
 
@@ -29,4 +28,3 @@ def migrate_contract(raw: dict[str, Any]) -> tuple[dict[str, Any], list[str]]:
     runtime.setdefault("stderr_limit_bytes", 1_048_576)
     runtime.setdefault("require_clean_exit", True)
     return migrated, ["0.1.0->1.0.0: added explicit fail-closed runtime defaults"]
-

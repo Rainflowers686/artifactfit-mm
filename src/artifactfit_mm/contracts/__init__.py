@@ -4,4 +4,3 @@ from artifactfit_mm.contracts.loader import load_contract, validate_contract_fil
 from artifactfit_mm.contracts.models import ArtifactContract
 
 __all__ = ["ArtifactContract", "load_contract", "validate_contract_file"]
-

@@ -1,0 +1,5 @@
+{
+  "fixture": "fixture_gpu_oom",
+  "final_verdict": "BUDGET_GPU_EXCEEDED",
+  "cleanup_status": "CLEAN"
+}

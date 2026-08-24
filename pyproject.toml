@@ -36,6 +36,7 @@ dev = [
   "ruff>=0.9,<1",
   "types-psutil>=6.1",
   "types-pyyaml>=6.0",
+  "types-jsonschema>=4.23",
 ]
 
 [project.scripts]
@@ -65,4 +66,3 @@ python_version = "3.11"
 strict = true
 warn_unused_ignores = true
 exclude = ["tests/fixtures/programs/"]
-

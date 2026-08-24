@@ -1,0 +1,5 @@
+{
+  "fixture": "fixture_safe_batch_transform",
+  "final_verdict": "P2_ENVIRONMENT_READY",
+  "transform_class": "SAFE"
+}

@@ -7,7 +7,6 @@ from pathlib import Path
 
 from artifactfit_mm.contracts.models import ArtifactSpec
 
-
 LICENSE_NAMES = ("LICENSE", "LICENSE.txt", "LICENSE.md", "COPYING", "COPYING.txt")
 
 
@@ -82,8 +81,12 @@ def inspect_repository(workspace: Path, artifact: ArtifactSpec) -> RepositoryIns
         repository_kind = "git"
         commit_matches = git_head.casefold() == artifact.commit.casefold()
     else:
-        repository_kind = "local_fixture" if artifact.repository.startswith("local://") else "non_git"
-        commit_matches = repository_kind == "local_fixture" and artifact.commit.startswith("fixture")
+        repository_kind = (
+            "local_fixture" if artifact.repository.startswith("local://") else "non_git"
+        )
+        commit_matches = repository_kind == "local_fixture" and artifact.commit.startswith(
+            "fixture"
+        )
     license_path = next(
         (resolved / name for name in LICENSE_NAMES if (resolved / name).is_file()),
         None,

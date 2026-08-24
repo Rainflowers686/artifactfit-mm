@@ -6,7 +6,6 @@ from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
-
 PositiveFloat = Annotated[float, Field(gt=0)]
 NonNegativeFloat = Annotated[float, Field(ge=0)]
 
@@ -147,4 +146,3 @@ class ArtifactContract(StrictModel):
         if "P0" not in self.stages or "P1" not in self.stages:
             raise ValueError("P0 and P1 must be declared")
         return self
-

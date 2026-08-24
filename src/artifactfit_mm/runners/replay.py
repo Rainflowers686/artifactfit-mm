@@ -75,10 +75,9 @@ def replay_run(summary_path: str | Path, *, receipt_root: str | Path | None = No
             receipt_root=output_root,
             run_label=f"{loaded.contract.artifact.id}_replay",
         )
-        stage_agreement = (
-            replay.observed_highest_stage == original.get("observed_highest_stage")
-            and replay.blocking_state == original.get("blocking_state")
-        )
+        stage_agreement = replay.observed_highest_stage == original.get(
+            "observed_highest_stage"
+        ) and replay.blocking_state == original.get("blocking_state")
         verdict = "REPLAY_AGREEMENT" if stage_agreement else "REPLAY_DIVERGENCE"
     else:
         stage_agreement = None

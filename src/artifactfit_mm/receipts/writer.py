@@ -16,7 +16,6 @@ import psutil
 from artifactfit_mm import __version__
 from artifactfit_mm.resources.process import ProcessResult
 
-
 FIXED_NON_CLAIMS: dict[str, object] = {
     "ENGINEERING_FEASIBILITY_ONLY": True,
     "SCIENTIFIC_RESULT": False,
@@ -55,21 +54,20 @@ def capture_environment() -> dict[str, Any]:
         "python_executable": sys.executable,
         "cpu_count_logical": psutil.cpu_count(logical=True),
         "ram_total_bytes": psutil.virtual_memory().total,
-        "is_wsl": "microsoft" in platform.release().casefold()
-        or "WSL_INTEROP" in os.environ,
+        "is_wsl": "microsoft" in platform.release().casefold() or "WSL_INTEROP" in os.environ,
     }
 
 
 def _write_json(path: Path, value: object) -> None:
-    path.write_text(json.dumps(value, indent=2, sort_keys=True, ensure_ascii=False) + "\n", encoding="utf-8")
+    path.write_text(
+        json.dumps(value, indent=2, sort_keys=True, ensure_ascii=False) + "\n", encoding="utf-8"
+    )
 
 
 def _write_trace(path: Path, process_result: ProcessResult | None) -> None:
     with path.open("w", encoding="utf-8", newline="") as handle:
         writer = csv.writer(handle)
-        writer.writerow(
-            ["elapsed_s", "process_count", "rss_bytes", "gpu_bytes", "workspace_bytes"]
-        )
+        writer.writerow(["elapsed_s", "process_count", "rss_bytes", "gpu_bytes", "workspace_bytes"])
         if process_result:
             for sample in process_result.trace:
                 writer.writerow(

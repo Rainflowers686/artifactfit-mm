@@ -64,4 +64,3 @@ class StageMachine:
             raise ValueError(f"state machine already blocked at {self.blocking_state}")
         self.blocking_state = state
         self.history.append(f"{state.value}:{reason}")
-

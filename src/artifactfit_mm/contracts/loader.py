@@ -74,7 +74,9 @@ def load_contract(path: str | Path) -> LoadedContract:
         raise ContractValidationError(str(exc)) from exc
     errors = _schema_errors(migrated)
     if errors:
-        raise ContractValidationError("contract schema validation failed:\n- " + "\n- ".join(errors))
+        raise ContractValidationError(
+            "contract schema validation failed:\n- " + "\n- ".join(errors)
+        )
     try:
         contract = ArtifactContract.model_validate(migrated)
     except ValidationError as exc:

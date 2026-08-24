@@ -13,10 +13,13 @@ from artifactfit_mm.adapters.repository import RepositoryInspection, inspect_rep
 from artifactfit_mm.contracts.loader import LoadedContract, load_contract
 from artifactfit_mm.contracts.models import PredicateKind, StageSpec, TransformClass
 from artifactfit_mm.policies.engine import PolicyDecision, evaluate_transforms
-from artifactfit_mm.receipts.writer import FIXED_NON_CLAIMS, capture_environment, write_stage_receipt
+from artifactfit_mm.receipts.writer import (
+    FIXED_NON_CLAIMS,
+    capture_environment,
+    write_stage_receipt,
+)
 from artifactfit_mm.resources.process import GIB, ProcessLimits, ProcessResult, run_bounded_process
 from artifactfit_mm.stages.machine import BlockingState, Stage, StageMachine
-
 
 STAGE_BY_KEY: dict[str, Stage] = {
     "P0": Stage.P0_DISCOVERED,
@@ -49,7 +52,9 @@ def _timestamp_id() -> str:
 
 
 def _write_json(path: Path, value: object) -> None:
-    path.write_text(json.dumps(value, indent=2, sort_keys=True, ensure_ascii=False) + "\n", encoding="utf-8")
+    path.write_text(
+        json.dumps(value, indent=2, sort_keys=True, ensure_ascii=False) + "\n", encoding="utf-8"
+    )
 
 
 def _contained_path(workspace: Path, relative: str) -> Path:
@@ -202,7 +207,9 @@ def _write_internal_receipt(
     return str(path)
 
 
-def _runtime_environment(network_allowed: bool, stage_environment: dict[str, str]) -> dict[str, str]:
+def _runtime_environment(
+    network_allowed: bool, stage_environment: dict[str, str]
+) -> dict[str, str]:
     environment = os.environ.copy()
     environment.update(stage_environment)
     environment["PYTHONUNBUFFERED"] = "1"
@@ -298,7 +305,9 @@ def _execute_stage(
             "command": list(spec.command),
             "environment": dict(spec.environment),
             "network_policy": (
-                "CONTRACT_EXPLICIT_ALLOW" if loaded.contract.runtime.network_allowed else "DEFAULT_DENY_SOFT"
+                "CONTRACT_EXPLICIT_ALLOW"
+                if loaded.contract.runtime.network_allowed
+                else "DEFAULT_DENY_SOFT"
             ),
             "start_time": started_at,
             "end_time": ended_at,
@@ -310,6 +319,8 @@ def _execute_stage(
             "enforcement_mode": process_result.enforcement,
             "stdout_observed_bytes": process_result.stdout_observed_bytes,
             "stderr_observed_bytes": process_result.stderr_observed_bytes,
+            "stdout_written_bytes": process_result.stdout_written_bytes,
+            "stderr_written_bytes": process_result.stderr_written_bytes,
             "stdout_truncated": process_result.stdout_truncated,
             "stderr_truncated": process_result.stderr_truncated,
             "expected_outputs": list(spec.expected_outputs),

@@ -1,0 +1,6 @@
+{
+  "fixture": "fixture_child_process_leak",
+  "final_verdict": "P2_ENVIRONMENT_READY",
+  "cleanup_status": "CLEAN",
+  "residual_child_processes": 0
+}

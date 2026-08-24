@@ -1,0 +1,5 @@
+{
+  "fixture": "fixture_timeout",
+  "final_verdict": "BUDGET_TIME_EXCEEDED",
+  "cleanup_status": "CLEAN"
+}

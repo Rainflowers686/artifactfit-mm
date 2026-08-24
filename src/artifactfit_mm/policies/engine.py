@@ -11,7 +11,6 @@ from artifactfit_mm.contracts.models import (
     TransformRequest,
 )
 
-
 SAFE_KEYS = {
     "batch_size",
     "evaluation_batch_size",
@@ -136,22 +135,24 @@ def _classify_builtin(request: TransformRequest) -> tuple[TransformClass, str, s
             "The transformation may preserve semantics but requires artifact-specific review.",
         )
     if leaf in SAFE_KEYS:
-        if leaf in {"batch_size", "evaluation_batch_size", "eval_batch_size"}:
-            if not (
-                isinstance(request.original, (int, float))
-                and not isinstance(request.original, bool)
-                and isinstance(request.proposed, (int, float))
-                and not isinstance(request.proposed, bool)
-                and 0 < request.proposed <= request.original
-            ):
-                return (
-                    TransformClass.REVIEW_REQUIRED,
-                    f"builtin.review.{leaf}.not_reduction",
-                    "Only a positive batch-size reduction is safe by default.",
-                )
-        if leaf in {"output_directory", "output_dir", "cache_location", "cache_dir"} and _unsafe_path_value(
-            request.proposed
+        if leaf in {"batch_size", "evaluation_batch_size", "eval_batch_size"} and not (
+            isinstance(request.original, (int, float))
+            and not isinstance(request.original, bool)
+            and isinstance(request.proposed, (int, float))
+            and not isinstance(request.proposed, bool)
+            and 0 < request.proposed <= request.original
         ):
+            return (
+                TransformClass.REVIEW_REQUIRED,
+                f"builtin.review.{leaf}.not_reduction",
+                "Only a positive batch-size reduction is safe by default.",
+            )
+        if leaf in {
+            "output_directory",
+            "output_dir",
+            "cache_location",
+            "cache_dir",
+        } and _unsafe_path_value(request.proposed):
             return (
                 TransformClass.CONTRACT_VIOLATION,
                 f"builtin.forbidden.{leaf}.workspace_escape",
@@ -172,6 +173,8 @@ def _classify_builtin(request: TransformRequest) -> tuple[TransformClass, str, s
 def classify_transform(contract: ArtifactContract, request: TransformRequest) -> TransformDecision:
     builtin_class, builtin_rule, rationale = _classify_builtin(request)
     policy = contract.transforms
+    classification: TransformClass
+    rule: str
     if builtin_class is TransformClass.CONTRACT_VIOLATION:
         classification = builtin_class
         rule = builtin_rule
@@ -206,5 +209,7 @@ def classify_transform(contract: ArtifactContract, request: TransformRequest) ->
 
 def evaluate_transforms(contract: ArtifactContract) -> PolicyDecision:
     return PolicyDecision(
-        decisions=tuple(classify_transform(contract, item) for item in contract.transforms.requested)
+        decisions=tuple(
+            classify_transform(contract, item) for item in contract.transforms.requested
+        )
     )

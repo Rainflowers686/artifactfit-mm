@@ -1,0 +1,6 @@
+{
+  "fixture": "fixture_stdout_flood",
+  "final_verdict": "P2_ENVIRONMENT_READY",
+  "cleanup_status": "CLEAN",
+  "stdout_truncated": true
+}
