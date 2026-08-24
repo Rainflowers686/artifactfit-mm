@@ -1,0 +1,145 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://artifactfit-mm.local/schemas/artifact-contract-1.0.0.json",
+  "title": "ArtifactFit-MM Artifact Contract",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "artifact", "target", "declared_invariants", "transforms", "stages", "evidence"],
+  "properties": {
+    "schema_version": {"const": "1.0.0"},
+    "artifact": {"$ref": "#/$defs/artifact"},
+    "target": {"$ref": "#/$defs/target"},
+    "declared_invariants": {"$ref": "#/$defs/invariants"},
+    "transforms": {"$ref": "#/$defs/transforms"},
+    "stages": {
+      "type": "object",
+      "minProperties": 2,
+      "propertyNames": {"pattern": "^P[0-8]$"},
+      "additionalProperties": {"$ref": "#/$defs/stage"},
+      "required": ["P0", "P1"]
+    },
+    "evidence": {"$ref": "#/$defs/evidence"},
+    "runtime": {"$ref": "#/$defs/runtime"}
+  },
+  "$defs": {
+    "artifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "repository", "commit", "license_policy", "official_entrypoints", "declared_framework"],
+      "properties": {
+        "id": {"type": "string", "minLength": 1, "pattern": "^[A-Za-z0-9_.-]+$"},
+        "repository": {"type": "string", "minLength": 1},
+        "commit": {"type": "string", "minLength": 7},
+        "license_policy": {"$ref": "#/$defs/license_policy"},
+        "official_entrypoints": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}},
+        "declared_framework": {"type": "string", "minLength": 1}
+      }
+    },
+    "license_policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["allowed_spdx"],
+      "properties": {
+        "allowed_spdx": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}},
+        "require_license_file": {"type": "boolean", "default": true},
+        "allow_unknown": {"type": "boolean", "default": false}
+      }
+    },
+    "target": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["platform", "gpu_count", "max_vram_gb", "max_system_ram_gb", "max_wall_time", "max_workspace_growth_gb", "max_download_gb"],
+      "properties": {
+        "platform": {"enum": ["windows", "linux", "wsl2"]},
+        "gpu_count": {"type": "integer", "minimum": 0},
+        "max_vram_gb": {"type": "number", "minimum": 0},
+        "max_system_ram_gb": {"type": "number", "exclusiveMinimum": 0},
+        "max_wall_time": {"type": "number", "exclusiveMinimum": 0},
+        "max_workspace_growth_gb": {"type": "number", "minimum": 0},
+        "max_download_gb": {"type": "number", "minimum": 0}
+      }
+    },
+    "invariants": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["task", "modalities", "model_family", "backbone_constraints", "input_constraints", "dataset_semantics", "evaluation_protocol", "objective"],
+      "properties": {
+        "task": {"type": "string", "minLength": 1},
+        "modalities": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}},
+        "model_family": {"type": "string", "minLength": 1},
+        "backbone_constraints": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}},
+        "input_constraints": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}},
+        "dataset_semantics": {"type": "string", "minLength": 1},
+        "evaluation_protocol": {"type": "string", "minLength": 1},
+        "objective": {"type": "string", "minLength": 1}
+      }
+    },
+    "transform_request": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "original", "proposed"],
+      "properties": {
+        "path": {"type": "string", "minLength": 1},
+        "original": {},
+        "proposed": {}
+      }
+    },
+    "transforms": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["allowed", "review_required", "forbidden"],
+      "properties": {
+        "allowed": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+        "review_required": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+        "forbidden": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+        "requested": {"type": "array", "items": {"$ref": "#/$defs/transform_request"}, "default": []}
+      }
+    },
+    "predicate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind"],
+      "properties": {
+        "kind": {"enum": ["exit_code_zero", "path_exists", "stdout_contains", "stderr_not_contains"]},
+        "value": {"type": ["string", "null"]}
+      }
+    },
+    "stage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["enabled", "command", "expected_outputs", "timeout", "success_predicates"],
+      "properties": {
+        "enabled": {"type": "boolean"},
+        "command": {"type": "array", "minItems": 1, "items": {"type": "string"}},
+        "expected_outputs": {"type": "array", "items": {"type": "string"}},
+        "timeout": {"type": "number", "exclusiveMinimum": 0},
+        "success_predicates": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/predicate"}},
+        "working_directory": {"type": "string", "default": "."},
+        "environment": {"type": "object", "additionalProperties": {"type": "string"}, "default": {}}
+      }
+    },
+    "evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["files_to_hash"],
+      "properties": {
+        "files_to_hash": {"type": "array", "items": {"type": "string"}},
+        "environment_capture": {"type": "boolean", "default": true},
+        "resource_trace": {"type": "boolean", "default": true},
+        "stdout": {"type": "boolean", "default": true},
+        "stderr": {"type": "boolean", "default": true}
+      }
+    },
+    "runtime": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "network_allowed": {"type": "boolean", "default": false},
+        "sample_interval_ms": {"type": "integer", "minimum": 50, "maximum": 5000, "default": 100},
+        "stdout_limit_bytes": {"type": "integer", "minimum": 1024, "default": 1048576},
+        "stderr_limit_bytes": {"type": "integer", "minimum": 1024, "default": 1048576},
+        "require_clean_exit": {"type": "boolean", "default": true}
+      }
+    }
+  }
+}
