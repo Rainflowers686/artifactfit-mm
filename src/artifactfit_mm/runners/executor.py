@@ -313,6 +313,12 @@ def _execute_stage(
             "end_time": ended_at,
             "exit_code": process_result.exit_code,
             "timeout": process_result.blocking_state == BlockingState.BUDGET_TIME_EXCEEDED.value,
+            "wall_clock_seconds": process_result.wall_clock_seconds,
+            "termination_latency_seconds": (
+                max(0.0, process_result.wall_clock_seconds - process_result.trace[-1].elapsed_s)
+                if process_result.trace
+                else None
+            ),
             "peak_gpu_bytes": process_result.peak_gpu_bytes,
             "peak_ram_bytes": process_result.peak_rss_bytes,
             "workspace_delta_bytes": process_result.workspace_delta_bytes,
