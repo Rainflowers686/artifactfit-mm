@@ -12,6 +12,7 @@ from typing import Any, BinaryIO
 import psutil
 import pynvml  # type: ignore[import-untyped]
 
+from artifactfit_mm.resources.windows_gpu import WindowsGpuProcessMemorySampler
 from artifactfit_mm.stages.machine import BlockingState
 
 GIB = 1024**3
@@ -259,6 +260,7 @@ def run_bounded_process(
     stderr_thread.start()
 
     nvml = _NvmlSampler()
+    windows_gpu = WindowsGpuProcessMemorySampler()
     known_pids: set[int] = {process.pid}
     trace: list[ResourceSample] = []
     peak_rss = 0
@@ -273,7 +275,14 @@ def run_bounded_process(
             known_pids = _tree_pids(process.pid, known_pids)
             live_pids = {pid for pid in known_pids if psutil.pid_exists(pid)}
             rss = _tree_rss(live_pids)
-            gpu = nvml.sample(live_pids)
+            nvml_gpu = nvml.sample(live_pids)
+            windows_gpu_value = windows_gpu.sample(live_pids)
+            if nvml_gpu is None or (
+                windows_gpu_value is not None and windows_gpu_value > 0 and nvml_gpu == 0
+            ):
+                gpu = windows_gpu_value
+            else:
+                gpu = nvml_gpu
             if time.monotonic() - last_workspace_sample >= 0.5:
                 workspace_now = workspace_size(cwd)
                 last_workspace_sample = time.monotonic()
@@ -313,10 +322,19 @@ def run_bounded_process(
         stdout_thread.join(timeout=2.0)
         stderr_thread.join(timeout=2.0)
         end_workspace = workspace_size(cwd)
-        gpu_after = nvml.sample(set(known_pids))
+        nvml_after = nvml.sample(set(known_pids))
+        windows_after = windows_gpu.sample(set(known_pids))
+        if nvml_after is None or (
+            windows_after is not None and windows_after > 0 and nvml_after == 0
+        ):
+            gpu_after = windows_after
+        else:
+            gpu_after = nvml_after
         gpu_release_verified = None if gpu_after is None else gpu_after == 0
         nvml_reason = nvml.reason
+        windows_gpu_reason = windows_gpu.reason
         nvml.close()
+        windows_gpu.close()
 
     if residual:
         cleanup_status = "CLEANUP_FAILED"
@@ -328,9 +346,9 @@ def run_bounded_process(
         "wall_time": "HARD_ENFORCED_PROCESS_TREE_TERMINATION",
         "ram": "SOFT_MONITORED_PROCESS_TREE_POLLING",
         "gpu": (
-            "SOFT_MONITORED_NVML_PROCESS_TREE_POLLING"
+            "SOFT_MONITORED_NVML_OR_WINDOWS_PDH_PROCESS_TREE_POLLING"
             if peak_gpu is not None
-            else f"UNAVAILABLE:{nvml_reason}"
+            else f"UNAVAILABLE:NVML={nvml_reason};PDH={windows_gpu_reason}"
         ),
         "storage": "SOFT_MONITORED_WORKSPACE_GROWTH_LOWER_BOUND",
         "download": "DOWNLOAD_BYTES_UNMEASURED",

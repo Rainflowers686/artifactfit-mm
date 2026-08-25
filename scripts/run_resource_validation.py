@@ -65,17 +65,45 @@ def _start_independent_sampler(
 ) -> tuple[subprocess.Popen[bytes], Path, Path]:
     stop_file = workspace / "sampler.stop"
     summary_file = independent_dir / "independent_nvml_summary.json"
-    command = [
-        sys.executable,
-        str(product_root / "scripts" / "independent_nvml_sampler.py"),
-        str(workspace / "gpu_pid.txt"),
-        str(stop_file),
-        str(independent_dir / "independent_nvml_trace.csv"),
-        str(summary_file),
-        "--interval",
-        "0.05",
-    ]
-    process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    if sys.platform == "win32":
+        powershell = shutil.which("pwsh.exe") or shutil.which("powershell.exe")
+        if powershell is None:
+            raise RuntimeError("no PowerShell executable available for independent WDDM sampling")
+        command = [
+            powershell,
+            "-NoProfile",
+            "-File",
+            str(product_root / "scripts" / "independent_windows_gpu_sampler.ps1"),
+            "-PidFile",
+            str(workspace / "gpu_pid.txt"),
+            "-StopFile",
+            str(stop_file),
+            "-TraceFile",
+            str(independent_dir / "independent_windows_gpu_trace.csv"),
+            "-SummaryFile",
+            str(summary_file),
+            "-IntervalMilliseconds",
+            "100",
+        ]
+        creationflags = subprocess.CREATE_NO_WINDOW
+    else:
+        command = [
+            sys.executable,
+            str(product_root / "scripts" / "independent_nvml_sampler.py"),
+            str(workspace / "gpu_pid.txt"),
+            str(stop_file),
+            str(independent_dir / "independent_nvml_trace.csv"),
+            str(summary_file),
+            "--interval",
+            "0.05",
+        ]
+        creationflags = 0
+    process = subprocess.Popen(
+        command,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        creationflags=creationflags,
+    )
     return process, stop_file, summary_file
 
 
