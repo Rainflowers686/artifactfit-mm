@@ -8,7 +8,7 @@ from typing import Any
 from artifactfit_mm.adapters.repository import inspect_repository
 from artifactfit_mm.contracts.loader import load_contract
 from artifactfit_mm.receipts.writer import capture_environment, read_json, utc_now
-from artifactfit_mm.runners.executor import RunResult, run_contract
+from artifactfit_mm.runners.executor import RunResult, command_file_hashes, run_contract
 
 
 @dataclass(frozen=True, slots=True)
@@ -19,6 +19,7 @@ class ReplayResult:
     contract_hash_match: bool
     commit_match: bool
     commands_match: bool
+    command_inputs_match: bool
     stage_agreement: bool | None
     environment_drift: dict[str, object]
     verdict: str
@@ -39,6 +40,20 @@ def _recorded_commands(loaded_contract: Any) -> dict[str, list[str]]:
             break
         commands[key] = list(spec.command)
     return commands
+
+
+def _recorded_command_file_hashes(
+    loaded_contract: Any, workspace: Path
+) -> dict[str, list[dict[str, object]]]:
+    hashes: dict[str, list[dict[str, object]]] = {"P0": [], "P1": []}
+    for index in range(2, 9):
+        key = f"P{index}"
+        spec = loaded_contract.stages.get(key)
+        if spec is None or not spec.enabled:
+            break
+        working_directory = (workspace / spec.working_directory).resolve()
+        hashes[key] = command_file_hashes(list(spec.command), working_directory)
+    return hashes
 
 
 def _environment_drift(original: dict[str, Any], current: dict[str, Any]) -> dict[str, object]:
@@ -63,12 +78,14 @@ def replay_run(summary_path: str | Path, *, receipt_root: str | Path | None = No
     )
     current_commands = _recorded_commands(loaded.contract)
     commands_match = current_commands == original.get("recorded_commands")
+    current_input_hashes = _recorded_command_file_hashes(loaded.contract, workspace)
+    command_inputs_match = current_input_hashes == original.get("recorded_command_file_hashes")
     current_environment = capture_environment()
     drift = _environment_drift(original.get("environment", {}), current_environment)
     output_root = Path(receipt_root).resolve() if receipt_root else original_path.parent.parent
     comparison_path = original_path.parent / f"replay_comparison_{utc_now().replace(':', '')}.json"
     replay: RunResult | None = None
-    if hash_match and commit_match and commands_match:
+    if hash_match and commit_match and commands_match and command_inputs_match:
         replay = run_contract(
             contract_path,
             workspace=workspace,
@@ -89,6 +106,7 @@ def replay_run(summary_path: str | Path, *, receipt_root: str | Path | None = No
         contract_hash_match=hash_match,
         commit_match=commit_match,
         commands_match=commands_match,
+        command_inputs_match=command_inputs_match,
         stage_agreement=stage_agreement,
         environment_drift=drift,
         verdict=verdict,

@@ -16,6 +16,7 @@ from artifactfit_mm.policies.engine import PolicyDecision, evaluate_transforms
 from artifactfit_mm.receipts.writer import (
     FIXED_NON_CLAIMS,
     capture_environment,
+    sha256_file,
     write_stage_receipt,
 )
 from artifactfit_mm.resources.process import GIB, ProcessLimits, ProcessResult, run_bounded_process
@@ -64,6 +65,36 @@ def _contained_path(workspace: Path, relative: str) -> Path:
     except ValueError as exc:
         raise ValueError(f"path escapes workspace: {relative}") from exc
     return candidate
+
+
+def command_file_hashes(command: list[str], working_directory: Path) -> list[dict[str, object]]:
+    """Hash every existing file named directly in an argv vector.
+
+    Contract hashing protects the command text. These records additionally
+    protect scripts, configs, checkpoints, and executables referenced by that
+    command, including files outside the artifact workspace.
+    """
+    records: list[dict[str, object]] = []
+    seen: set[Path] = set()
+    for argument in command:
+        try:
+            candidate = Path(argument)
+            if not candidate.is_absolute():
+                candidate = working_directory / candidate
+            resolved = candidate.resolve()
+            if not resolved.is_file() or resolved in seen:
+                continue
+        except (OSError, ValueError):
+            continue
+        seen.add(resolved)
+        records.append(
+            {
+                "path": str(resolved),
+                "size": resolved.stat().st_size,
+                "sha256": sha256_file(resolved),
+            }
+        )
+    return records
 
 
 def _observed_outputs(workspace: Path, expected: list[str]) -> list[dict[str, object]]:
@@ -239,6 +270,7 @@ def _execute_stage(
 ) -> tuple[str, bool]:
     stage = STAGE_BY_KEY[key]
     stage_workspace = _contained_path(workspace, spec.working_directory)
+    input_hashes = command_file_hashes(list(spec.command), stage_workspace)
     stdout_temp = run_directory / f".{key}.stdout.tmp"
     stderr_temp = run_directory / f".{key}.stderr.tmp"
     target = loaded.contract.target
@@ -303,6 +335,7 @@ def _execute_stage(
     receipt.update(
         {
             "command": list(spec.command),
+            "command_input_hashes": input_hashes,
             "environment": dict(spec.environment),
             "network_policy": (
                 "CONTRACT_EXPLICIT_ALLOW"
@@ -344,6 +377,7 @@ def _execute_stage(
             "argv": list(spec.command),
             "working_directory": str(stage_workspace),
             "environment_overrides": dict(spec.environment),
+            "input_file_hashes": input_hashes,
         },
         transform_diff=policy.as_dict(),
         workspace=workspace,
@@ -435,12 +469,18 @@ def run_contract(
         "P0": ["artifactfit:internal:p0"],
         "P1": ["artifactfit:internal:p1"],
     }
+    recorded_command_file_hashes: dict[str, list[dict[str, object]]] = {
+        "P0": [],
+        "P1": [],
+    }
     for index in range(2, 9):
         key = f"P{index}"
         spec = loaded.contract.stages.get(key)
         if spec is None or not spec.enabled:
             break
         recorded_commands[key] = list(spec.command)
+        stage_workspace = _contained_path(resolved_workspace, spec.working_directory)
+        recorded_command_file_hashes[key] = command_file_hashes(list(spec.command), stage_workspace)
     if not machine.terminal:
         for index in range(2, 9):
             key = f"P{index}"
@@ -480,6 +520,7 @@ def run_contract(
         "final_verdict": final_verdict,
         "history": list(machine.history),
         "recorded_commands": recorded_commands,
+        "recorded_command_file_hashes": recorded_command_file_hashes,
         "receipt_paths": receipt_paths,
         "environment": capture_environment(),
     }

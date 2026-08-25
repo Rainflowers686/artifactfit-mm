@@ -49,3 +49,25 @@ def test_replay_stage_agreement(
     replay = replay_run(original.run_summary, receipt_root=tmp_path / "receipts")
     assert replay.verdict == "REPLAY_AGREEMENT"
     assert replay.stage_agreement is True
+
+
+@pytest.mark.integration
+def test_replay_fails_closed_when_command_input_changes(
+    base_contract: dict[str, Any],
+    write_contract: Any,
+    workspace: Path,
+    tmp_path: Path,
+) -> None:
+    contract = copy.deepcopy(base_contract)
+    contract["stages"]["P2"] = _stage("success.py")
+    original = run_contract(
+        write_contract(contract, "tamper.yaml"),
+        workspace=workspace,
+        receipt_root=tmp_path / "receipts",
+    )
+    program = workspace / "programs" / "success.py"
+    program.write_text(program.read_text(encoding="utf-8") + "\n# drift\n", encoding="utf-8")
+    replay = replay_run(original.run_summary, receipt_root=tmp_path / "receipts")
+    assert replay.verdict == "REPLAY_FAIL_CLOSED"
+    assert replay.command_inputs_match is False
+    assert replay.replay_summary is None
