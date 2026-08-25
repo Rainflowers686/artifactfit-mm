@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from enum import StrEnum
-from pathlib import Path
+from pathlib import Path, PurePosixPath, PureWindowsPath
 from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
@@ -106,7 +106,17 @@ class StageSpec(StrictModel):
     @field_validator("working_directory")
     @classmethod
     def relative_workdir(cls, value: str) -> str:
-        if Path(value).is_absolute() or ".." in Path(value).parts:
+        native = Path(value)
+        windows = PureWindowsPath(value)
+        posix = PurePosixPath(value)
+        if (
+            native.is_absolute()
+            or windows.is_absolute()
+            or posix.is_absolute()
+            or ".." in native.parts
+            or ".." in windows.parts
+            or ".." in posix.parts
+        ):
             raise ValueError("stage working_directory must stay inside artifact workspace")
         return value
 

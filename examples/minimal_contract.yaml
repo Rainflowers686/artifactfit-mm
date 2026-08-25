@@ -1,0 +1,68 @@
+schema_version: 1.0.0
+artifact:
+  id: example_local_artifact
+  repository: local://replace-with-pinned-artifact
+  commit: replace0001
+  license_policy:
+    allowed_spdx: [MIT]
+    require_license_file: true
+    allow_unknown: false
+  official_entrypoints: [demo.py]
+  declared_framework: python
+target:
+  platform: windows
+  gpu_count: 0
+  max_vram_gb: 0
+  max_system_ram_gb: 4
+  max_wall_time: 30
+  max_workspace_growth_gb: 0.1
+  max_download_gb: 0
+declared_invariants:
+  task: replace with the artifact task
+  modalities: [image]
+  model_family: replace with the frozen family
+  backbone_constraints: [unchanged]
+  input_constraints: [unchanged]
+  dataset_semantics: replace with frozen dataset semantics
+  evaluation_protocol: engineering predicates only
+  objective: engineering preflight only
+transforms:
+  allowed: [training.batch_size, runtime.num_workers, runtime.output_dir]
+  review_required: [model.gradient_checkpointing]
+  forbidden: [model.backbone, input.resolution, input.modalities, training.objective]
+  requested: []
+stages:
+  P0:
+    enabled: true
+    command: [artifactfit:internal]
+    expected_outputs: []
+    timeout: 5
+    success_predicates: [{kind: exit_code_zero}]
+  P1:
+    enabled: true
+    command: [artifactfit:internal]
+    expected_outputs: []
+    timeout: 5
+    success_predicates: [{kind: exit_code_zero}]
+  P2:
+    enabled: true
+    command: [python, -c, "print('ENVIRONMENT_READY')"]
+    expected_outputs: []
+    timeout: 10
+    success_predicates:
+      - {kind: exit_code_zero}
+      - {kind: stdout_contains, value: ENVIRONMENT_READY}
+    working_directory: .
+    environment: {}
+evidence:
+  files_to_hash: [README.md, LICENSE]
+  environment_capture: true
+  resource_trace: true
+  stdout: true
+  stderr: true
+runtime:
+  network_allowed: false
+  sample_interval_ms: 100
+  stdout_limit_bytes: 1048576
+  stderr_limit_bytes: 1048576
+  require_clean_exit: true

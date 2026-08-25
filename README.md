@@ -29,3 +29,12 @@ artifactfit doctor
 
 `plan` never executes external code. Network access is disabled by contract default. Runtime enforcement is reported per metric as hard-enforced, soft-monitored or unavailable.
 
+Start with [the minimal contract](examples/minimal_contract.yaml), then read the
+[contract guide](docs/contract-guide.md) and [enforcement limitations](docs/enforcement-limitations.md).
+
+## Vertical-slice scope
+
+Version 0.1 reports only the highest observed engineering stage. It does not repair an
+environment, infer scientific invariants, replace ACM Artifact Evaluation, or assess
+paper claims. Replay fails closed if a contract, commit, command, or directly referenced
+command file changes.

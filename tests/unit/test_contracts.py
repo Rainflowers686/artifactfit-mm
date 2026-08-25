@@ -37,14 +37,35 @@ def test_old_schema_migrates_with_explicit_note(
     assert loaded.migrations
 
 
-def test_stage_workdir_cannot_escape(base_contract: dict[str, Any], write_contract: Any) -> None:
+@pytest.mark.parametrize(
+    "working_directory", ["../outside", "..\\outside", "C:\\outside", "/outside"]
+)
+def test_stage_workdir_cannot_escape_on_windows_or_wsl(
+    base_contract: dict[str, Any], write_contract: Any, working_directory: str
+) -> None:
     base_contract["stages"]["P2"] = {
         "enabled": True,
         "command": ["python", "-V"],
         "expected_outputs": [],
         "timeout": 5,
         "success_predicates": [{"kind": "exit_code_zero"}],
-        "working_directory": "../outside",
+        "working_directory": working_directory,
     }
     with pytest.raises(ContractValidationError, match="stay inside"):
         load_contract(write_contract(base_contract))
+
+
+def test_stage_workdir_accepts_contained_native_path(
+    base_contract: dict[str, Any], write_contract: Any
+) -> None:
+    base_contract["stages"]["P2"] = {
+        "enabled": True,
+        "command": ["python", "-V"],
+        "expected_outputs": [],
+        "timeout": 5,
+        "success_predicates": [{"kind": "exit_code_zero"}],
+        "working_directory": "contained/subdirectory",
+    }
+    assert load_contract(write_contract(base_contract)).contract.stages["P2"].working_directory == (
+        "contained/subdirectory"
+    )
