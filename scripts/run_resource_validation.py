@@ -83,7 +83,7 @@ def _start_independent_sampler(
             "-SummaryFile",
             str(summary_file),
             "-IntervalMilliseconds",
-            "100",
+            "25",
         ]
         creationflags = subprocess.CREATE_NO_WINDOW
     else:
@@ -233,6 +233,74 @@ def run_validation(
                 }
             )
 
+    measurement_contract_value = _json(contract_source_root / "fixture_gpu_oom" / "contract.json")
+    measurement_contract_value["artifact"]["id"] = "fixture_gpu_measurement"
+    measurement_contract_value["target"].update(
+        {
+            "gpu_count": 1,
+            "max_vram_gb": 2.0,
+            "max_system_ram_gb": 2.0,
+            "max_wall_time": 20,
+        }
+    )
+    measurement_contract_value["stages"]["P2"].update(
+        {
+            "command": [str(probe_python), "programs/gpu_allocate.py"],
+            "timeout": 20,
+            "environment": {
+                "ARTIFACTFIT_GPU_FIXTURE_MB": "512",
+                "ARTIFACTFIT_GPU_FIXTURE_HOLD_SECONDS": "3",
+            },
+        }
+    )
+    measurement_contract = contract_root / "fixture_gpu_measurement.json"
+    _write_json(measurement_contract, measurement_contract_value)
+    measurement_rows: list[dict[str, Any]] = []
+    for repetition in range(1, repetitions + 1):
+        run_workspace = local_root / f"fixture_gpu_measurement_{repetition:02d}"
+        shutil.copytree(source_workspace, run_workspace)
+        independent_dir = independent_root / f"fixture_gpu_measurement_{repetition:02d}"
+        independent_dir.mkdir(parents=True, exist_ok=False)
+        sampler, stop_file, sampler_summary = _start_independent_sampler(
+            product_root, run_workspace, independent_dir
+        )
+        try:
+            result = run_contract(
+                measurement_contract,
+                workspace=run_workspace,
+                receipt_root=receipt_root / f"fixture_gpu_measurement_{repetition:02d}",
+                run_label=f"fixture_gpu_measurement_{repetition:02d}",
+            )
+        finally:
+            sampler_process = _finish_sampler(sampler, stop_file)
+            _write_json(independent_dir / "sampler_process.json", sampler_process)
+        stage_receipt = _stage_receipt(result, "P2")
+        independent = _json(sampler_summary)
+        independent_peak = independent.get("peak_gpu_bytes")
+        product_peak = stage_receipt.get("peak_gpu_bytes")
+        relative_error = None
+        if (
+            isinstance(independent_peak, int)
+            and independent_peak > 0
+            and isinstance(product_peak, int)
+        ):
+            relative_error = abs(product_peak - independent_peak) / independent_peak
+        reference_path = run_workspace / "gpu_reference.json"
+        measurement_rows.append(
+            {
+                "repetition": repetition,
+                "observed_verdict": result.final_verdict,
+                "stage_pass": result.observed_highest_stage == "P2_ENVIRONMENT_READY",
+                "product_peak_gpu_bytes": product_peak,
+                "independent_peak_gpu_bytes": independent_peak,
+                "gpu_relative_error": relative_error,
+                "torch_reference": _json(reference_path) if reference_path.exists() else None,
+                "cleanup_pass": stage_receipt.get("cleanup_status") == "CLEAN",
+                "gpu_release_verified": stage_receipt.get("gpu_release_verified"),
+                "run_summary": result.run_summary,
+            }
+        )
+
     case_pass: dict[str, bool] = {}
     for case in CASES:
         case_rows = [row for row in rows if row["case"] == case]
@@ -240,8 +308,16 @@ def run_validation(
             row["run_pass"] for row in case_rows
         )
     gpu_errors = [
-        float(row["gpu_relative_error"]) for row in rows if row["gpu_relative_error"] is not None
+        float(row["gpu_relative_error"])
+        for row in measurement_rows
+        if row["gpu_relative_error"] is not None
     ]
+    measurement_execution_pass = len(measurement_rows) == repetitions and all(
+        bool(row["stage_pass"])
+        and bool(row["cleanup_pass"])
+        and row["gpu_release_verified"] is True
+        for row in measurement_rows
+    )
     metrics = {
         "FEASIBILITY_ONLY": True,
         "SCIENTIFIC_RESULT": False,
@@ -252,15 +328,20 @@ def run_validation(
         "case_pass": case_pass,
         "run_count": len(rows),
         "run_pass_count": sum(bool(row["run_pass"]) for row in rows),
+        "gpu_measurement_execution_pass": measurement_execution_pass,
         "gpu_measurement_repetition_count": len(gpu_errors),
         "gpu_relative_error_mean": sum(gpu_errors) / len(gpu_errors) if gpu_errors else None,
         "gpu_relative_error_max": max(gpu_errors) if gpu_errors else None,
-        "gpu_error_gate_pass": bool(gpu_errors) and max(gpu_errors) <= 0.10,
+        "gpu_error_gate_pass": measurement_execution_pass
+        and bool(gpu_errors)
+        and max(gpu_errors) <= 0.10,
+        "gpu_measurement_rows": measurement_rows,
         "all_cleanup_pass": all(bool(row["cleanup_pass"]) for row in rows),
         "all_residual_checks_pass": all(bool(row["residual_pass"]) for row in rows),
         "rows": rows,
     }
     _write_json(tracked_root / "resource_validation_runs.json", rows)
+    _write_json(tracked_root / "gpu_measurement_validation_runs.json", measurement_rows)
     _write_json(tracked_root / "resource_metrics.json", metrics)
     with (tracked_root / "resource_matrix.csv").open("w", encoding="utf-8", newline="") as handle:
         writer = csv.DictWriter(

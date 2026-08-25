@@ -6,6 +6,7 @@ from pathlib import Path
 import torch
 
 target_mb = int(os.environ.get("ARTIFACTFIT_GPU_FIXTURE_MB", "256"))
+hold_seconds = float(os.environ.get("ARTIFACTFIT_GPU_FIXTURE_HOLD_SECONDS", "10"))
 Path("gpu_pid.txt").write_text(str(os.getpid()), encoding="utf-8")
 chunks = []
 for _ in range(max(1, target_mb // 16)):
@@ -22,4 +23,4 @@ for _ in range(max(1, target_mb // 16)):
         encoding="utf-8",
     )
     time.sleep(0.1)
-time.sleep(10)
+time.sleep(hold_seconds)
