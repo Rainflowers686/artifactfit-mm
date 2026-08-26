@@ -6,6 +6,25 @@ ArtifactFit-MM is a deterministic preflight tool for asking one bounded engineer
 
 It does not synthesize environments, repair scientific code, award artifact badges, or claim that paper results were reproduced.
 
+## Status
+
+This repository contains a public alpha vertical slice. It is source publication for
+transparent review, not a tagged release, scientific experiment authorization, or paper
+submission.
+
+## Install from source
+
+Python 3.11 is the primary supported runtime. With `uv` installed:
+
+```text
+git clone https://github.com/Rainflowers686/artifactfit-mm.git
+cd artifactfit-mm
+uv sync --extra dev --locked
+uv run artifactfit doctor
+```
+
+Dependency resolution is the only step above that normally needs network access.
+
 ## Non-claims
 
 Every receipt fixes these fields:
@@ -28,6 +47,10 @@ artifactfit doctor
 ```
 
 `plan` never executes external code. Network access is disabled by contract default. Runtime enforcement is reported per metric as hard-enforced, soft-monitored or unavailable.
+
+Receipts intentionally capture host, environment, repository and command metadata. Review
+them before sharing: local paths, hostnames and operator-supplied environment overrides may
+be sensitive. Never place credentials in a contract or stage environment.
 
 Start with [the minimal contract](examples/minimal_contract.yaml), then read the
 [contract guide](docs/contract-guide.md) and [enforcement limitations](docs/enforcement-limitations.md).

@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from typing import Any
 
+import pytest
+
 from artifactfit_mm.contracts.loader import load_contract
 from artifactfit_mm.contracts.models import TransformClass
 from artifactfit_mm.policies.engine import evaluate_transforms
@@ -49,8 +51,21 @@ def test_unknown_change_fails_to_review(base_contract: dict[str, Any], write_con
     )
 
 
-def test_workspace_escape_is_violation(base_contract: dict[str, Any], write_contract: Any) -> None:
+@pytest.mark.parametrize(
+    "proposed",
+    [
+        "../outside",
+        "/outside",
+        "C:\\outside",
+        "C:/outside",
+        "\\\\server\\share\\outside",
+        "folder/../../outside",
+    ],
+)
+def test_workspace_escape_is_violation(
+    base_contract: dict[str, Any], write_contract: Any, proposed: str
+) -> None:
     assert (
-        _decision(base_contract, write_contract, "runtime.output_dir", "outputs", "../outside")
+        _decision(base_contract, write_contract, "runtime.output_dir", "outputs", proposed)
         is TransformClass.CONTRACT_VIOLATION
     )

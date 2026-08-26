@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import fnmatch
 from dataclasses import dataclass
-from pathlib import PurePath
+from pathlib import PurePath, PurePosixPath, PureWindowsPath
 from typing import Any
 
 from artifactfit_mm.contracts.models import (
@@ -115,8 +115,8 @@ def _leaf(path: str) -> str:
 def _unsafe_path_value(value: Any) -> bool:
     if not isinstance(value, str):
         return False
-    candidate = PurePath(value)
-    return candidate.is_absolute() or ".." in candidate.parts
+    candidates = (PurePath(value), PureWindowsPath(value), PurePosixPath(value))
+    return any(candidate.is_absolute() or ".." in candidate.parts for candidate in candidates)
 
 
 def _classify_builtin(request: TransformRequest) -> tuple[TransformClass, str, str]:

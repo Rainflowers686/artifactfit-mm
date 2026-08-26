@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import socket
 from dataclasses import asdict, dataclass
 from datetime import UTC, datetime
@@ -33,6 +34,7 @@ STAGE_BY_KEY: dict[str, Stage] = {
     "P7": Stage.P7_BACKWARD_SMOKE_PASS,
     "P8": Stage.P8_SHORT_OPTIMIZATION_PASS,
 }
+RUN_LABEL_PATTERN = re.compile(r"^[A-Za-z0-9_.-]+$")
 
 
 @dataclass(frozen=True, slots=True)
@@ -50,6 +52,12 @@ class RunResult:
 
 def _timestamp_id() -> str:
     return datetime.now(UTC).strftime("%Y%m%dT%H%M%S.%fZ")
+
+
+def _validated_run_label(value: str) -> str:
+    if not RUN_LABEL_PATTERN.fullmatch(value):
+        raise ValueError("run label must contain only letters, digits, dot, underscore, or hyphen")
+    return value
 
 
 def _write_json(path: Path, value: object) -> None:
@@ -400,7 +408,7 @@ def run_contract(
     resolved_workspace = Path(workspace).resolve()
     root = Path(receipt_root).resolve()
     root.mkdir(parents=True, exist_ok=True)
-    label = run_label or loaded.contract.artifact.id
+    label = _validated_run_label(loaded.contract.artifact.id if run_label is None else run_label)
     run_directory = root / f"{_timestamp_id()}_{label}"
     run_directory.mkdir(parents=False, exist_ok=False)
     inspection = inspect_repository(resolved_workspace, loaded.contract.artifact)

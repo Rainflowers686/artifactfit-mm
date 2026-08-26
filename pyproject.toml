@@ -28,6 +28,10 @@ dependencies = [
   "typer>=0.15,<1",
 ]
 
+[project.urls]
+Repository = "https://github.com/Rainflowers686/artifactfit-mm"
+Issues = "https://github.com/Rainflowers686/artifactfit-mm/issues"
+
 [project.optional-dependencies]
 dev = [
   "mypy>=1.14,<2",
