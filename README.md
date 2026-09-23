@@ -1,5 +1,7 @@
 # ArtifactFit-MM
 
+English | [简体中文](README.zh-CN.md)
+
 ArtifactFit-MM is a deterministic preflight tool for asking one bounded engineering question:
 
 > What is the highest stage this pinned research artifact demonstrably reaches on this target machine, under this immutable scientific contract and resource envelope?
