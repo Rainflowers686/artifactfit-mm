@@ -40,3 +40,23 @@ uv run artifactfit doctor
 plan 不执行外部代码；网络默认由契约关闭。运行时限制会按指标报告为强制执行、软监控或不可用。重放时若契约、提交、命令或直接引用的命令文件发生变化，操作会失败关闭。
 
 收据会记录主机、环境、仓库和命令元数据。分享前请检查其中的本地路径、主机名和环境覆盖项；不要把凭据放进契约或阶段环境。可从[最小契约](examples/minimal_contract.yaml)开始，再阅读[契约指南](docs/contract-guide.md)与[执行限制](docs/enforcement-limitations.md)。
+## 命令行
+
+~~~text
+artifactfit init PATH
+artifactfit validate CONTRACT
+artifactfit inspect CONTRACT
+artifactfit plan CONTRACT
+artifactfit run CONTRACT
+artifactfit replay RECEIPT
+artifactfit report RECEIPT
+artifactfit doctor
+~~~
+
+plan 不会执行外部代码；网络访问默认由契约关闭。运行时限制会按指标标记为强制执行、软监控或不可用。
+
+## 纵向切片范围
+
+0.1 版只报告观察到的最高工程阶段。它不会修复环境、推断科学不变量、替代 ACM Artifact Evaluation，也不评估论文主张。
+
+如果契约、提交、命令或直接引用的命令文件发生变化，重放会失败关闭。
