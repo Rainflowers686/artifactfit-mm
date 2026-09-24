@@ -2,11 +2,13 @@
 
 *按固定契约和资源边界预检多媒体研究工件的工具。*
 
+![Python 3.11](https://img.shields.io/badge/Python-3.11-3776AB?logo=python&logoColor=white) ![Public alpha](https://img.shields.io/badge/Status-Public%20alpha-E3A008) ![MIT](https://img.shields.io/badge/License-MIT-2EA44F)
 
-[English](README.md) | [简体中文](README.zh-CN.md)
+
 
 **导航：**[状态](#状态) · [从源码安装](#从源码安装) · [命令行](#命令行) · [范围](#纵向切片范围)
 
+[English](README.md) | [简体中文](README.zh-CN.md)
 
 ArtifactFit-MM 是一个确定性预检工具，用来判断固定的研究工件在指定机器和资源边界下，实际能够到达哪个工程阶段。
 
