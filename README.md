@@ -2,11 +2,13 @@
 
 *A contract-guided preflight tool for resource-bounded multimedia research artifacts.*
 
+![Python 3.11](https://img.shields.io/badge/Python-3.11-3776AB?logo=python&logoColor=white) ![Public alpha](https://img.shields.io/badge/Status-Public%20alpha-E3A008) ![MIT](https://img.shields.io/badge/License-MIT-2EA44F)
 
-[English](README.md) | [简体中文](README.zh-CN.md)
+
 
 **Guide:** [Status](#status) · [Install from source](#install-from-source) · [CLI](#cli) · [Scope](#vertical-slice-scope)
 
+[English](README.md) | [简体中文](README.zh-CN.md)
 
 ArtifactFit-MM is a deterministic preflight tool for asking one bounded engineering question:
 
